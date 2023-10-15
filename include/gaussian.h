@@ -23,7 +23,7 @@ typedef struct Gaussian {
 
 typedef struct T_Gaussian {
     Vec4 position;
-    float covariance[16]; // Using a 4x4 Matrix here because of alignment yay
+    float invCovariance[4];
     unsigned int depthIndex;
     unsigned int _padding[3]; // Gotta pad it thanks shaders :POG:
 } T_Gaussian;

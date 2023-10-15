@@ -13,10 +13,19 @@ layout(std430, binding = 0) buffer globals {
     mat4 projMat;
 };
 
+layout(std430, row_major, binding = 1) buffer GaussianBuffer {
+    struct Gaussian {
+        vec4 position;
+        vec4 rotation;
+        vec3 scale;
+        vec4 color;
+    } gaussians[];
+};
+
 layout(std430, binding = 2) buffer TransformedGaussianBuffer {
     struct TransformedGaussian {
         vec4 position;
-        mat4 covariance;
+        mat2 invCovariance;
         unsigned int depthIndex; // These have to be set to 0-N in ascending order for this to work
     } t_gaussians[];
 };
@@ -28,34 +37,25 @@ layout(std430, binding = 3) buffer DepthBuffer {
     } depthBuf[];
 };
 
-// This should probably be done in the transform shader tbh
-mat2 invertMat2(mat2 mat) {
-    float det = (mat[0][0]*mat[1][1])
-              - (mat[0][1]*mat[1][0]);
-    
-    mat2 tmp = {
-        { mat[1][1], -mat[0][1]},
-        {-mat[1][0],  mat[0][0]}
-    };
-
-    return tmp/det;
-}
-
 float gaussianPDF(vec2 coord, vec2 mew, mat2 invCov) {
     return exp(-0.5 * dot((coord - mew), invCov*(coord - mew)));
 }
 
-uniform mat2 testCov = {
-    {0.25, 0.10},
-    {0.10, 0.10}
-};
-
 void main() {
     vec2 coord = (fragTexCoord*2) - 1;
 
-    mat2 inverseCov = invertMat2(testCov);
+    float alpha = 1.0;
 
-    float pdfVal = gaussianPDF(coord, vec2(0, 0), inverseCov);
+    for (int i = 0; i < gaussians.length(); i ++) {
+        unsigned int gI = depthBuf[i].gaussianIndex;
+        if (t_gaussians[gI].position.z >= 1) break;
 
-    outputColor = vec4(vec3(pdfVal), 1.0);
+        vec2 gaussianPos = t_gaussians[gI].position.xy;
+        mat2 gaussianInvCov = t_gaussians[gI].invCovariance;
+
+        float pdfVal = gaussianPDF(coord, gaussianPos, gaussianInvCov);
+
+        outputColor += alpha*pdfVal*gaussians[gI].color;
+        alpha -= alpha*pdfVal*gaussians[gI].color.w;
+    }
 }

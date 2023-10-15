@@ -1,4 +1,6 @@
 #include "globals_util.h"
+#include <raylib.h>
+#include <raymath.h>
 #include <rlgl.h>
 #include <stdio.h>
 
@@ -9,21 +11,60 @@ struct Globals {
 
 unsigned int globalsId;
 
-bool InitGlobals() {
-    // Init matrices
-    float* v = (float*)globals.viewMat;
-    v[ 0] = 1; v[ 1] = 0; v[ 2] = 0; v[ 3] = 0;
-    v[ 4] = 0; v[ 5] = 1; v[ 6] = 0; v[ 7] = 0;
-    v[ 8] = 0; v[ 9] = 0; v[10] = 1; v[11] = 0;
-    v[12] = 0; v[13] = 0; v[14] = 0; v[15] = 1;
+float inverseViewRotation[3][3];
 
-    float* p = (float*)globals.projMat;
-    p[ 0] = 1; p[ 1] = 0; p[ 2] = 0; p[ 3] = 0;
-    p[ 4] = 0; p[ 5] = 1; p[ 6] = 0; p[ 7] = 0;
-    p[ 8] = 0; p[ 9] = 0; p[10] = 1; p[11] = 0;
-    p[12] = 0; p[13] = 0; p[14] = 0; p[15] = 1;
+float fovy;
+float near;
+float far;
+
+bool InitGlobals(float fieldOfViewY, float nearClip, float farClip) {
+
+    // Aspect ratio
+    float a = ((float)GetRenderWidth()) / GetRenderHeight();
+    // printf("Aspect ratio: %f\n", a);
+
+    fovy = fieldOfViewY;
+    near = nearClip;
+    far = farClip;
+
+    float f = 1.0 / tanf(fovy / 2.0);
+
+    // Init matrices
+    globals = (struct Globals) {
+        .viewMat = {
+            {1, 0, 0, 0},
+            {0, 1, 0, 0},
+            {0, 0, 1, 0},
+            {0, 0, 0, 1}
+        },
+        .projMat = {
+            {f/a, 0,                         0,                         0},
+            {0,   f,                         0,                         0},
+            {0,   0, (near + far)/(far - near), (2*near*far)/(far - near)},
+            {0,   0,                        -1,                         0}
+        }
+    };
 
     printf("viewMat[0][0] = %f\n", globals.viewMat[0][0]);
+
+    printf("projMat:\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
+        globals.projMat[0][0],
+        globals.projMat[0][1],
+        globals.projMat[0][2],
+        globals.projMat[0][3],
+        globals.projMat[1][0],
+        globals.projMat[1][1],
+        globals.projMat[1][2],
+        globals.projMat[1][3],
+        globals.projMat[2][0],
+        globals.projMat[2][1],
+        globals.projMat[2][2],
+        globals.projMat[2][3],
+        globals.projMat[3][0],
+        globals.projMat[3][1],
+        globals.projMat[3][2],
+        globals.projMat[3][3]
+    );
 
     // Upload to GPU
     globalsId = rlLoadShaderBuffer(sizeof(globals), &globals, 0); // TODO: Change the 0
@@ -34,4 +75,21 @@ bool InitGlobals() {
     rlBindShaderBuffer(globalsId, 0);
 
     return true;
+}
+
+void UploadGlobalsChangesToGPU() {
+    rlUpdateShaderBuffer(globalsId, &globals, sizeof(globals), 0); // I'm just gonna upload everything
+}
+
+
+void MoveCameraBy(float x, float y, float z) {
+    globals.viewMat[0][3] += x;
+    globals.viewMat[1][3] += y;
+    globals.viewMat[2][3] += z;
+}
+
+void MoveCameraTo(float x, float y, float z) {
+    globals.viewMat[0][3] = x;
+    globals.viewMat[1][3] = y;
+    globals.viewMat[2][3] = z;
 }

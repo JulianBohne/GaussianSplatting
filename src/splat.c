@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 // Compile raylib with OPENGL 4.3 otherwise we don't have compute shaders lol
 // cmake -G "MinGW Makefiles" -D OPENGL_VERSION="4.3" .
@@ -13,7 +14,7 @@
 #include "comp_shader_util.h"
 #include "globals_util.h"
 
-#define N 10
+#define N 20
 
 float bufA[N];
 float bufB[N];
@@ -28,12 +29,22 @@ unsigned int t_gaussianBufId;
 DepthStruct depthBuffer[N];
 unsigned int depthBufId;
 
+float map(float x, float fromA, float fromB, float toA, float toB) {
+    return toA + (toB - toA) * (x - fromA) / (fromB - fromA);
+}
+
+float randf(float min, float max) {
+    return map((float)rand(), 0, (float)RAND_MAX, min, max);
+}
+
 bool InitBuffers() {
+    srand(42);
+
     for (unsigned int i = 0; i < N; i ++) {
-        gaussians[i].position = (Vec4){i, i+1, i+2, 1.0}; // last 1.0 because of homogeneous coordinates
+        gaussians[i].position = (Vec4){randf(-10, 10), randf(-10, 10), randf(-1, -10), 1.0}; // last 1.0 because of homogeneous coordinates
         gaussians[i].rotation = (Vec4){1.0, 0.0, 0.0, 0.0}; // Identity quaternion
         gaussians[i].scale = (Vec4){0.1, 0.1, 0.1, 1.0};
-        gaussians[i].color = (Vec4){1.0, 1.0, 1.0, 1.0};
+        gaussians[i].color = (Vec4){randf(0, 1), randf(0, 1), randf(0, 1), 1.0};
 
         // The depth index has to be initialized properly, but the rest will be overwritten anyway
         t_gaussians[i].depthIndex = i;
@@ -74,19 +85,27 @@ void DeinitBuffers() {
 
 int main(int argc, char** argv) {
 
-    InitWindow(400, 300, "Gaussian Splatting");
+    InitWindow(800, 400, "Gaussian Splatting");
     
     SetTargetFPS(60);
 
     CompShader compTransform = LoadCompShader("shaders/Transform.glsl");
-
     if (!IsCompShaderValid(compTransform)) {
         return 1;
     }
 
-    EnableCompShader(&compTransform);
+    CompShader compSortEven = LoadCompShader("shaders/SortEven.glsl");
+    if (!IsCompShaderValid(compSortEven)) {
+        return 1;
+    }
 
-    if (!InitGlobals()) {
+    CompShader compSortUneven = LoadCompShader("shaders/SortUneven.glsl");
+    if (!IsCompShaderValid(compSortUneven)) {
+        return 1;
+    }
+
+
+    if (!InitGlobals(PI*0.5, 0.01, 10000.0)) {
         return 2;
     }
 
@@ -96,6 +115,7 @@ int main(int argc, char** argv) {
     
     printf("Dispatching shader...\n");
     
+    EnableCompShader(&compTransform);
     DispatchCompShader(compTransform, N, 1, 1);
 
     rlReadShaderBuffer(t_gaussianBufId, (void*)t_gaussians, sizeof(T_Gaussian)*2, 0);
@@ -104,10 +124,7 @@ int main(int argc, char** argv) {
     printf("Depth index: %d\n", t_gaussians[1].depthIndex);
     printf("\n");
 
-    DeinitBuffers();
-
     DisableCompShader(&compTransform);
-    UnloadCompShader(compTransform);
 
     Shader fragShader = LoadShader(NULL, "shaders/FragmentShader.glsl");
 
@@ -123,11 +140,40 @@ int main(int argc, char** argv) {
 
     while (!WindowShouldClose()) {
         BeginDrawing();
+            
+            if (IsKeyDown(KEY_W)) MoveCameraBy(   0,  0.5, 0);
+            if (IsKeyDown(KEY_S)) MoveCameraBy(   0, -0.5, 0);
+            if (IsKeyDown(KEY_A)) MoveCameraBy( 0.5,    0, 0);
+            if (IsKeyDown(KEY_D)) MoveCameraBy(-0.5,    0, 0);
+            if (IsKeyDown(KEY_Q)) MoveCameraBy(   0,    0, 0.5);
+            if (IsKeyDown(KEY_E)) MoveCameraBy(   0,    0, -0.5);
+
+            UploadGlobalsChangesToGPU();
+
+            EnableCompShader(&compTransform);
+            DispatchCompShader(compTransform, N, 1, 1);
+            DisableCompShader(&compTransform);
+
+            EnableCompShader(&compSortEven);
+            DispatchCompShader(compSortEven, N/2, 1, 1);
+            DisableCompShader(&compSortEven);
+            
+            EnableCompShader(&compSortUneven);
+            DispatchCompShader(compSortUneven, (N-1)/2, 1, 1);
+            DisableCompShader(&compSortUneven);
+
+            ClearBackground(BLACK);
             BeginShaderMode(fragShader);
                 DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
             EndShaderMode();
+
+            DrawFPS(10, 10);
         EndDrawing();
     }
+    
+    DeinitBuffers();
+
+    UnloadCompShader(compTransform);
 
     CloseWindow();
 
