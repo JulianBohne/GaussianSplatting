@@ -42,7 +42,7 @@ float gaussianPDF(vec2 coord, vec2 mew, mat2 invCov) {
 }
 
 void main() {
-    vec2 coord = (fragTexCoord*2) - 1;
+    vec2 coord = ((fragTexCoord*2) - 1);
 
     float alpha = 1.0;
 

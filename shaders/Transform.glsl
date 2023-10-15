@@ -43,9 +43,9 @@ mat2 invertMat2(mat2 mat) {
 
 mat3 createJacobian(vec4 at) {
 
-    float a = viewMat[0][0];
-    float b = viewMat[1][1];
-    float d = viewMat[2][3];
+    float a = projMat[0][0];
+    float b = projMat[1][1];
+    float d = projMat[2][3];
 
     return mat3(
         -a/at.z, 0, (a * at.x)/(at.z * at.z),
