@@ -3,10 +3,14 @@
 #include <raymath.h>
 #include <rlgl.h>
 #include <stdio.h>
+#include <assert.h>
 
 struct Globals {
     float viewMat[4][4];
     float projMat[4][4];
+    unsigned int width;
+    unsigned int height; 
+    unsigned int tileSize; // Remember that there might be padding after this (if I add another matrix)
 } globals;
 
 unsigned int globalsId;
@@ -17,17 +21,26 @@ float fovy;
 float near;
 float far;
 
+Vector3 camPos = { 0, 0, 0 };
+float camYaw = 0;
+float camPitch = 0;
+
+Matrix baseMatrix;
+Matrix invBaseMatrix;
+
 bool InitGlobals(float fieldOfViewY, float nearClip, float farClip) {
 
     // Aspect ratio
     float a = ((float)GetRenderWidth()) / GetRenderHeight();
-    // printf("Aspect ratio: %f\n", a);
 
     fovy = fieldOfViewY;
     near = nearClip;
     far = farClip;
 
     float f = 1.0 / tanf(fovy / 2.0);
+
+    baseMatrix = MatrixIdentity();
+    invBaseMatrix = MatrixIdentity();
 
     // Init matrices
     globals = (struct Globals) {
@@ -42,7 +55,10 @@ bool InitGlobals(float fieldOfViewY, float nearClip, float farClip) {
             {0,   f,                         0,                         0},
             {0,   0, (near + far)/(far - near), (2*near*far)/(far - near)},
             {0,   0,                        -1,                         0}
-        }
+        },
+        .width = GetRenderWidth(),
+        .height = GetRenderHeight(),
+        .tileSize = 64
     };
 
     printf("viewMat[0][0] = %f\n", globals.viewMat[0][0]);
@@ -78,18 +94,52 @@ bool InitGlobals(float fieldOfViewY, float nearClip, float farClip) {
 }
 
 void UploadGlobalsChangesToGPU() {
+
+    unsigned int width = GetRenderWidth();
+    unsigned int height = GetRenderHeight();
+
+    Matrix translation = MatrixTranslate(camPos.x, camPos.y, camPos.z);
+
+    Matrix viewMat = MatrixMultiply(MatrixMultiply(translation, MatrixRotateY(camYaw)), MatrixRotateX(camPitch));
+
+    // Aspect ratio
+    float a = ((float)width) / height;
+
+    float f = 1.0 / tanf(fovy / 2.0);
+
+    // Init matrices
+    globals = (struct Globals) {
+        .viewMat = {
+            {viewMat.m0, viewMat.m4, viewMat.m8, viewMat.m12},
+            {viewMat.m1, viewMat.m5, viewMat.m9, viewMat.m13},
+            {viewMat.m2, viewMat.m6, viewMat.m10, viewMat.m14},
+            {0, 0, 0, 1}
+        },
+        .projMat = {
+            {f/a, 0,                         0,                         0},
+            {0,   f,                         0,                         0},
+            {0,   0, (near + far)/(far - near), (2*near*far)/(far - near)},
+            {0,   0,                        -1,                         0}
+        },
+        .width = width,
+        .height = height,
+        .tileSize = 64
+    };
+
     rlUpdateShaderBuffer(globalsId, &globals, sizeof(globals), 0); // I'm just gonna upload everything
 }
 
-
-void MoveCameraBy(float x, float y, float z) {
-    globals.viewMat[0][3] += x;
-    globals.viewMat[1][3] += y;
-    globals.viewMat[2][3] += z;
+Vector3 GetCamForward() {
+    assert(0 && "Not implemented");
+    return (Vector3){0, 0, -1};
 }
 
-void MoveCameraTo(float x, float y, float z) {
-    globals.viewMat[0][3] = x;
-    globals.viewMat[1][3] = y;
-    globals.viewMat[2][3] = z;
+Vector3 GetCamUp() {
+    assert(0 && "Not implemented");
+    return (Vector3){0, 0, -1};
+}
+
+Vector3 GetCamRight() {
+    assert(0 && "Not implemented");
+    return (Vector3){0, 0, -1};
 }

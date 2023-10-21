@@ -14,7 +14,7 @@
 #include "comp_shader_util.h"
 #include "globals_util.h"
 
-#define N 20
+#define N 2000
 
 float bufA[N];
 float bufB[N];
@@ -85,7 +85,7 @@ void DeinitBuffers() {
 
 int main(int argc, char** argv) {
 
-    InitWindow(800, 400, "Gaussian Splatting");
+    InitWindow(800, 600, "Gaussian Splatting");
     
     SetTargetFPS(60);
 
@@ -118,10 +118,10 @@ int main(int argc, char** argv) {
     EnableCompShader(&compTransform);
     DispatchCompShader(compTransform, N, 1, 1);
 
-    rlReadShaderBuffer(t_gaussianBufId, (void*)t_gaussians, sizeof(T_Gaussian)*2, 0);
+    rlReadShaderBuffer(t_gaussianBufId, (void*)t_gaussians, sizeof(T_Gaussian), 0);
 
-    printf("Position: (%f, %f, %f, %f)\n", t_gaussians[1].position.x, t_gaussians[1].position.y, t_gaussians[1].position.z, t_gaussians[1].position.w);
-    printf("Depth index: %d\n", t_gaussians[1].depthIndex);
+    printf("Position: (%f, %f, %f, %f)\n", t_gaussians[0].position.x, t_gaussians[0].position.y, t_gaussians[0].position.z, t_gaussians[0].position.w);
+    printf("Depth index: %d\n", t_gaussians[0].depthIndex);
     printf("\n");
 
     DisableCompShader(&compTransform);
@@ -141,12 +141,21 @@ int main(int argc, char** argv) {
     while (!WindowShouldClose()) {
         BeginDrawing();
             
-            if (IsKeyDown(KEY_W)) MoveCameraBy(   0,  0.5, 0);
-            if (IsKeyDown(KEY_S)) MoveCameraBy(   0, -0.5, 0);
-            if (IsKeyDown(KEY_A)) MoveCameraBy( 0.5,    0, 0);
-            if (IsKeyDown(KEY_D)) MoveCameraBy(-0.5,    0, 0);
-            if (IsKeyDown(KEY_Q)) MoveCameraBy(   0,    0, 0.5);
-            if (IsKeyDown(KEY_E)) MoveCameraBy(   0,    0, -0.5);
+            if (IsKeyDown(KEY_W)) camPos.y += 0.5;
+            if (IsKeyDown(KEY_S)) camPos.y -= 0.5;
+            if (IsKeyDown(KEY_A)) camPos.x += 0.5;
+            if (IsKeyDown(KEY_D)) camPos.x -= 0.5;
+            if (IsKeyDown(KEY_Q)) camPos.z += 0.5;
+            if (IsKeyDown(KEY_E)) camPos.z -= 0.5;
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                Vector2 mouseDelta = GetMouseDelta();
+                camYaw += mouseDelta.x * 0.01;
+                camPitch += -mouseDelta.y * 0.01;
+                camPitch = camPitch > PI/2 ? PI/2 : camPitch;
+                camPitch = camPitch < -PI/2 ? -PI/2 : camPitch;
+
+            }
 
             UploadGlobalsChangesToGPU();
 

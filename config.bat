@@ -6,7 +6,7 @@ set source_files=splat.c, comp_shader_util.c, globals_util.c
 set output_file=splat.exe
 
 @rem ----------- Arguments -----------
-set common_args=-Wall
+set common_args=-Wall -Werror=implicit-function-declaration
 set debug_args=-D _DEBUG
 set release_args=-D NDEBUG -O3
 set test_args=-D _DEBUG -D TESTING

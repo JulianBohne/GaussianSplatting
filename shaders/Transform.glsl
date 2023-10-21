@@ -45,13 +45,13 @@ mat3 createJacobian(vec4 at) {
 
     float a = projMat[0][0];
     float b = projMat[1][1];
-    float d = projMat[2][3];
+    float d = projMat[3][2];
 
-    return mat3(
+    return transpose(mat3(
         -a/at.z, 0, (a * at.x)/(at.z * at.z),
         0, -b/at.z, (b * at.y)/(at.z * at.z),
         0, 0, d/(at.z*at.z)
-    );
+    ));
 }
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -61,14 +61,13 @@ void main() {
 
     vec4 camSpacePos = viewMat*gaussians[i].position;
 
-    vec4 projected = vec4(0.0, 0.0, camSpacePos.z + 10, 1.0);
-    projected = projMat*camSpacePos;
-    projected /= projected.w;
+    vec4 projected = projMat*camSpacePos;
+    projected /= abs(projected.w);
 
     mat3 cov3D = {
-        {0.1,   0,   0},
-        {  0, 0.1,   0},
-        {  0,   0, 0.1}
+        {0.5,   0,   0},
+        {  0, 0.5,   0},
+        {  0,   0, 0.5}
     };
 
     mat3 W = mat3(viewMat);
