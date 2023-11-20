@@ -14,7 +14,7 @@
 #include "comp_shader_util.h"
 #include "globals_util.h"
 
-#define N 2000
+#define N 300
 
 float bufA[N];
 float bufB[N];

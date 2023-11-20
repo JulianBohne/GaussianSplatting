@@ -2,7 +2,7 @@
 @rem --------- Version 0.2.1 ---------
 
 @rem ------------- Files -------------
-set source_files=splat.c, comp_shader_util.c, globals_util.c
+set source_files=splat.c, comp_shader_util.c, globals_util.c, splat_loader.c
 set output_file=splat.exe
 
 @rem ----------- Arguments -----------
