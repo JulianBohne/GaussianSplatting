@@ -14,6 +14,8 @@
 #include "comp_shader_util.h"
 #include "globals_util.h"
 
+#include "splat_loader.h"
+
 #define N 300
 
 float bufA[N];
@@ -39,6 +41,23 @@ float randf(float min, float max) {
 
 bool InitBuffers() {
     srand(42);
+
+    Splats splats = loadSplatsFromFile("resources/point_cloud.ply");
+    
+    if (splats.splatCount == 0) {
+        return false;
+    }
+
+    Gaussian g = splats.splats[0];
+
+    printf("First gaussian: {\n\tposition: [%f, %f, %f],\n\trotation: [%f, %f, %f, %f],\n\tscale: [%f, %f, %f],\n\tcolor: [%f, %f, %f, %f]\n}\n",
+        g.position.x, g.position.y, g.position.z,
+        g.rotation.x, g.rotation.y, g.rotation.z, g.rotation.w,
+        g.scale.x, g.scale.y, g.scale.z,
+        g.color.x, g.color.y, g.color.z, g.color.w 
+    );
+
+    // free(splats.splats); // FIXME: Move this!
 
     for (unsigned int i = 0; i < N; i ++) {
         gaussians[i].position = (Vec4){randf(-10, 10), randf(-10, 10), randf(-1, -10), 1.0}; // last 1.0 because of homogeneous coordinates

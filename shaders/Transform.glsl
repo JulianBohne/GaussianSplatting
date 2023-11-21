@@ -65,7 +65,7 @@ void main() {
     projected /= abs(projected.w);
 
     mat3 cov3D = {
-        {0.3,   0,   0},
+        {0.1,   0,   0},
         {  0, 0.1,   0},
         {  0,   0, 0.1}
     };
