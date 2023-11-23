@@ -64,11 +64,32 @@ void main() {
     vec4 projected = projMat*camSpacePos;
     projected /= abs(projected.w);
 
-    mat3 cov3D = {
-        {0.1,   0,   0},
-        {  0, 0.1,   0},
-        {  0,   0, 0.1}
+    
+
+    mat3 scaleMat = {
+        {gaussians[i].scale.x, 0.0, 0.0},
+        {0.0, gaussians[i].scale.y, 0.0},
+        {0.0, 0.0, gaussians[i].scale.z}
     };
+
+    float qr = gaussians[i].rotation.x;
+    float qi = gaussians[i].rotation.y;
+    float qj = gaussians[i].rotation.z;
+    float qk = gaussians[i].rotation.w;
+
+    mat3 rotMat = transpose(2 * mat3(
+        0.5 - (qj*qj + qk*qk), (qi*qj - qr*qk), (qi*qk + qr*qj),
+        (qi*qj + qr*qk), 0.5 - (qi*qi + qk*qk), (qj*qk - qr*qi),
+        (qi*qk - qr*qj), (qj*qk + qr*qi), 0.5 - (qi*qi + qj*qj)
+    ));
+
+    // mat3 cov3D = {
+    //     {0.001,   0,   0},
+    //     {  0, 0.001,   0},
+    //     {  0,   0, 0.001}
+    // };
+
+    mat3 cov3D = rotMat * scaleMat * transpose(scaleMat) * transpose(rotMat);
 
     mat3 W = mat3(viewMat);
 

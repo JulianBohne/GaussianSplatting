@@ -16,11 +16,7 @@
 
 #include "splat_loader.h"
 
-#define N 300
-
-float bufA[N];
-float bufB[N];
-float bufC[N];
+#define N 2000
 
 Gaussian gaussians[N];
 unsigned int gaussianBufId;
@@ -39,6 +35,23 @@ float randf(float min, float max) {
     return map((float)rand(), 0, (float)RAND_MAX, min, max);
 }
 
+void printGaussian(const char* preamble, Gaussian* g) {
+    printf("%s: {\n\tposition: [%f, %f, %f],\n\trotation: [%f, %f, %f, %f],\n\tscale: [%f, %f, %f],\n\tcolor: [%f, %f, %f, %f]\n}\n",
+        preamble,
+        g->position.x, g->position.y, g->position.z,
+        g->rotation.x, g->rotation.y, g->rotation.z, g->rotation.w,
+        g->scale.x, g->scale.y, g->scale.z,
+        g->color.x, g->color.y, g->color.z, g->color.w 
+    );
+}
+
+#define min(A, B) (A < B ? A : B)
+#define max(A, B) (A > B ? A : B)
+
+#define prop_min(A, BP, PROP) A.PROP = min(A.PROP, BP->PROP)
+#define prop_max(A, BP, PROP) A.PROP = max(A.PROP, BP->PROP)
+#define prop_sum(A, BP, PROP) A.PROP += BP->PROP
+
 bool InitBuffers() {
     srand(42);
 
@@ -48,22 +61,92 @@ bool InitBuffers() {
         return false;
     }
 
-    Gaussian g = splats.splats[0];
+    Gaussian minG = splats.splats[0];
+    Gaussian maxG = splats.splats[0];
+    Gaussian avgG = splats.splats[0];
 
-    printf("First gaussian: {\n\tposition: [%f, %f, %f],\n\trotation: [%f, %f, %f, %f],\n\tscale: [%f, %f, %f],\n\tcolor: [%f, %f, %f, %f]\n}\n",
-        g.position.x, g.position.y, g.position.z,
-        g.rotation.x, g.rotation.y, g.rotation.z, g.rotation.w,
-        g.scale.x, g.scale.y, g.scale.z,
-        g.color.x, g.color.y, g.color.z, g.color.w 
-    );
+    for (int i = 1; i < splats.splatCount; ++i) {
+        Gaussian* g = &splats.splats[i];
+        // minG.position.x = min(minG.position.x, g->position.x);
+        prop_min(minG, g, position.x);
+        prop_min(minG, g, position.y);
+        prop_min(minG, g, position.z);
+        prop_min(minG, g, rotation.x);
+        prop_min(minG, g, rotation.y);
+        prop_min(minG, g, rotation.z);
+        prop_min(minG, g, rotation.w);
+        prop_min(minG, g, scale.x);
+        prop_min(minG, g, scale.y);
+        prop_min(minG, g, scale.z);
+        prop_min(minG, g, color.x);
+        prop_min(minG, g, color.y);
+        prop_min(minG, g, color.z);
+        prop_min(minG, g, color.w);
+        
+        prop_max(maxG, g, position.x);
+        prop_max(maxG, g, position.y);
+        prop_max(maxG, g, position.z);
+        prop_max(maxG, g, rotation.x);
+        prop_max(maxG, g, rotation.y);
+        prop_max(maxG, g, rotation.z);
+        prop_max(maxG, g, rotation.w);
+        prop_max(maxG, g, scale.x);
+        prop_max(maxG, g, scale.y);
+        prop_max(maxG, g, scale.z);
+        prop_max(maxG, g, color.x);
+        prop_max(maxG, g, color.y);
+        prop_max(maxG, g, color.z);
+        prop_max(maxG, g, color.w);
+        
+        prop_sum(avgG, g, position.x);
+        prop_sum(avgG, g, position.y);
+        prop_sum(avgG, g, position.z);
+        prop_sum(avgG, g, rotation.x);
+        prop_sum(avgG, g, rotation.y);
+        prop_sum(avgG, g, rotation.z);
+        prop_sum(avgG, g, rotation.w);
+        prop_sum(avgG, g, scale.x);
+        prop_sum(avgG, g, scale.y);
+        prop_sum(avgG, g, scale.z);
+        prop_sum(avgG, g, color.x);
+        prop_sum(avgG, g, color.y);
+        prop_sum(avgG, g, color.z);
+        prop_sum(avgG, g, color.w);
+    }
+
+    avgG.position.x /= splats.splatCount;
+    avgG.position.y /= splats.splatCount;
+    avgG.position.z /= splats.splatCount;
+    
+    avgG.rotation.x /= splats.splatCount;
+    avgG.rotation.y /= splats.splatCount;
+    avgG.rotation.z /= splats.splatCount;
+    avgG.rotation.w /= splats.splatCount;
+
+    avgG.scale.x /= splats.splatCount;
+    avgG.scale.y /= splats.splatCount;
+    avgG.scale.z /= splats.splatCount;
+    
+    avgG.color.x /= splats.splatCount;
+    avgG.color.y /= splats.splatCount;
+    avgG.color.z /= splats.splatCount;
+    avgG.color.w /= splats.splatCount;
+
+    printGaussian("First Gaussian", &splats.splats[0]);
+    printGaussian("Min Gaussian", &minG);
+    printGaussian("Max Gaussian", &maxG);
+    printGaussian("Avg Gaussian", &avgG);
 
     // free(splats.splats); // FIXME: Move this!
 
     for (unsigned int i = 0; i < N; i ++) {
-        gaussians[i].position = (Vec4){randf(-10, 10), randf(-10, 10), randf(-1, -10), 1.0}; // last 1.0 because of homogeneous coordinates
-        gaussians[i].rotation = (Vec4){1.0, 0.0, 0.0, 0.0}; // Identity quaternion
-        gaussians[i].scale = (Vec4){0.1, 0.1, 0.1, 1.0};
-        gaussians[i].color = (Vec4){randf(0, 1), randf(0, 1), randf(0, 1), 1.0};
+        // // gaussians[i].position = (Vec4){randf(-10, 10), randf(-10, 10), randf(-1, -10), 1.0}; // last 1.0 because of homogeneous coordinates
+        // gaussians[i].position = splats.splats[i].position;
+        // gaussians[i].rotation = (Vec4){1.0, 0.0, 0.0, 0.0}; // Identity quaternion
+        // gaussians[i].scale = (Vec4){0.01, 0.01, 0.01, 1.0};
+        // // gaussians[i].color = (Vec4){randf(0, 1), randf(0, 1), randf(0, 1), 1.0};
+        // gaussians[i].color = splats.splats[i].color;
+        gaussians[i] = splats.splats[i];
 
         // The depth index has to be initialized properly, but the rest will be overwritten anyway
         t_gaussians[i].depthIndex = i;
@@ -166,6 +249,8 @@ int main(int argc, char** argv) {
             if (IsKeyDown(KEY_D)) camPos.x -= 0.5;
             if (IsKeyDown(KEY_Q)) camPos.z += 0.5;
             if (IsKeyDown(KEY_E)) camPos.z -= 0.5;
+
+            if (IsKeyPressed(KEY_SPACE)) printCurrentParams();
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 Vector2 mouseDelta = GetMouseDelta();

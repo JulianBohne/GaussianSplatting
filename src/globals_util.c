@@ -21,12 +21,18 @@ float fovy;
 float near;
 float far;
 
-Vector3 camPos = { 0, 0, 0 };
-float camYaw = 0;
-float camPitch = 0;
+Vector3 camPos = { 2.500000, 1.000000, 3.000000 };
+float camYaw = 2.909999;
+float camPitch = -0.270796;
 
 Matrix baseMatrix;
 Matrix invBaseMatrix;
+
+void printCurrentParams() {
+    printf("Vector3 camPos = { %f, %f, %f }\n", camPos.x, camPos.y, camPos.z);
+    printf("float camYaw = %f\n", camYaw);
+    printf("float camPitch = %f\n", camPitch);
+}
 
 bool InitGlobals(float fieldOfViewY, float nearClip, float farClip) {
 

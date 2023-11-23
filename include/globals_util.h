@@ -16,4 +16,6 @@ Vector3 GetCamForward();
 Vector3 GetCamUp();
 Vector3 GetCamRight();
 
+void printCurrentParams();
+
 #endif // GLOBALS_UTIL_H

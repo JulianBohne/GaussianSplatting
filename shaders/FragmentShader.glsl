@@ -66,8 +66,8 @@ void main() {
 
         float pdfVal = gaussianPDF(coord, gaussianPos, gaussianInvCov);
 
-        // color = color + alpha*pdfVal*gaussians[gI].color.xyz;
-        color = pow(sqrt(color) + alpha*pdfVal*sqrt(gaussians[gI].color.xyz), vec3(2)); // Maybe a slightly better color mixing? 
+        color = color + alpha*pdfVal*gaussians[gI].color.xyz;
+        // color = pow(sqrt(color) + alpha*pdfVal*sqrt(gaussians[gI].color.xyz), vec3(2)); // Maybe a slightly better color mixing? 
         alpha -= alpha*pdfVal*gaussians[gI].color.w;
     }
 
